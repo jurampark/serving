@@ -138,7 +138,7 @@ function test_docker_image {
   local docker_opts=" --privileged=true --rm -t -p ${rest_port}:${rest_port}"
   docker_opts+=" -v ${MODEL_FULL_PATH}:${model_base_path}"
   if [ "$USE_NVIDIA_RUNTIME" = true ]; then
-      docker_opts+=" --runtime=nvidia --gpus all"
+      docker_opts+=" --gpus all"
   fi
 
   if [[ "$IS_MKL_IMAGE" = true ]]; then
@@ -156,11 +156,18 @@ function test_docker_image {
     # Devel images do not run ModelServer but rather start interative shell.
     # Hence we need to explicitly set entrypoint to modelserver and pass the
     # required commandline options to serve the model.
+
+    echo "docker run ${docker_opts} \
+      --entrypoint /usr/local/bin/tensorflow_model_server -- ${IMAGE} \
+      --rest_api_port=${rest_port} \
+      --model_name=${MODELNAME} --model_base_path=${model_base_path}"
+
     docker run ${docker_opts} \
       --entrypoint /usr/local/bin/tensorflow_model_server -- ${IMAGE} \
       --rest_api_port=${rest_port} \
       --model_name=${MODELNAME} --model_base_path=${model_base_path} &
   else
+    echo "docker run ${docker_opts} -e MODEL_NAME=${MODELNAME} ${IMAGE}"
     docker run ${docker_opts} -e MODEL_NAME=${MODELNAME} ${IMAGE} &
   fi
   _find_container
